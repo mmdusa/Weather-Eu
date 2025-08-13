@@ -1,13 +1,10 @@
-export async function handler(event) {
+export async function handler() {
   try {
-    const res = await fetch("https://api.rainviewer.com/public/weather-maps.json", {
-      headers: {
-        "Content-Type": "application/json"
-      }
-    });
+    // Call RainViewer API for radar frames
+    const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
 
     if (!res.ok) {
-      throw new Error(`RainViewer API error: ${res.status}`);
+      throw new Error(`RainViewer request failed: ${res.status}`);
     }
 
     const data = await res.json();
@@ -23,6 +20,7 @@ export async function handler(event) {
   } catch (err) {
     return {
       statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ error: err.message })
     };
   }
