@@ -1,11 +1,27 @@
 export async function handler(event) {
   try {
-    // Forward query params from the request to the real OpenAQ API
-    const res = await fetch(`https://api.openaq.org/v2/latest?${event.rawQuery}`, {
-      headers: {
-        "x-api-key": process.env.OPENAQ_KEY || "" // Optional if API key is required
+    const { lat, lng } = event.queryStringParameters;
+
+    if (!lat || !lng) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing lat/lng parameters" })
+      };
+    }
+
+    // Call OpenAQ API
+    const res = await fetch(
+      `https://api.openaq.org/v2/latest?coordinates=${lat},${lng}&radius=25000&order_by=distance&limit=5`,
+      {
+        headers: {
+          "x-api-key": process.env.OPENAQ_KEY || "" // Optional if you have a key
+        }
       }
-    });
+    );
+
+    if (!res.ok) {
+      throw new Error(`OpenAQ request failed: ${res.status}`);
+    }
 
     const data = await res.json();
 
@@ -20,6 +36,7 @@ export async function handler(event) {
   } catch (err) {
     return {
       statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({ error: err.message })
     };
   }
