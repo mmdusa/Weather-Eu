@@ -1,43 +1,60 @@
-export async function handler(event) {
-  try {
-    const { lat, lng } = event.queryStringParameters;
+// netlify/functions/airquality.js
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+};
 
-    if (!lat || !lng) {
+exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 204, headers: CORS };
+  }
+
+  try {
+    const {
+      coordinates,
+      radius = "25000",
+      order_by = "distance",
+      limit = "5",
+    } = event.queryStringParameters || {};
+
+    if (!coordinates) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Missing lat/lng parameters" })
+        headers: CORS,
+        body: JSON.stringify({ error: "Missing required 'coordinates' param" }),
       };
     }
 
-    // Call OpenAQ API
-    const res = await fetch(
-      `https://api.openaq.org/v2/latest?coordinates=${lat},${lng}&radius=25000&order_by=distance&limit=5`,
-      {
-        headers: {
-          "x-api-key": process.env.OPENAQ_KEY || "" // Optional if you have a key
-        }
-      }
-    );
+    const url = new URL("https://api.openaq.org/v2/latest");
+    url.searchParams.set("coordinates", coordinates);
+    url.searchParams.set("radius", radius);
+    url.searchParams.set("order_by", order_by);
+    url.searchParams.set("limit", limit);
 
-    if (!res.ok) {
-      throw new Error(`OpenAQ request failed: ${res.status}`);
-    }
+    const res = await fetch(url.toString(), {
+      headers: {
+        // OpenAQ key optional; leave empty if you don't have one
+        "x-api-key": process.env.OPENAQ_KEY || undefined,
+      },
+    });
 
-    const data = await res.json();
+    const text = await res.text();
 
     return {
-      statusCode: 200,
+      statusCode: res.status,
       headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json"
+        ...CORS,
+        "Content-Type":
+          res.headers.get("content-type") || "application/json; charset=utf-8",
       },
-      body: JSON.stringify(data)
+      body: text,
     };
   } catch (err) {
     return {
       statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: err.message })
+      headers: CORS,
+      body: JSON.stringify({ error: err.message }),
     };
   }
-}
+};
