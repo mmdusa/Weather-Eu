@@ -7,7 +7,7 @@
 
     /* React + Vite */
     "jsx": "react-jsx",
-    "types": ["vite/client"],
+    "types": ["vite/client", "react"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",

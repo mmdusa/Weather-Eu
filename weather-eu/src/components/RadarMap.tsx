@@ -160,12 +160,11 @@ export default function RadarMap({
 
       <div className="h-[460px]">
         <MapContainer
-          key={`${center[0].toFixed(2)},${center[1].toFixed(2)}`} // force size recalc if city changes
+          key={`${center[0].toFixed(2)},${center[1].toFixed(2)}`}
           center={center as any}
           zoom={zoom}
           scrollWheelZoom
           style={{ height: "100%", width: "100%" }}
-          updateWhenIdle
           {...inertia}
         >
           <TileLayer

@@ -1,4 +1,9 @@
-type Stat = { label: string; value: string; note?: string; icon?: JSX.Element };
+type Stat = {
+  label: string;
+  value: string;
+  note?: string;
+  icon?: React.ReactNode;
+};
 
 export default function StatGrid({ items = [] }: { items?: Stat[] }) {
   if (!items || items.length === 0) {
