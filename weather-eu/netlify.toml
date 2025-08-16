@@ -1,22 +1,26 @@
-# netlify.toml
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command   = "npm run build"
+  publish   = "dist"
   functions = "netlify/functions"
 
+[build.environment]
+  NODE_VERSION = "20"
+
+# Rainviewer frames -> function
 [[redirects]]
-  from = "/api/rainviewer/frames"
-  to = "/.netlify/functions/rainviewer-frames"
+  from   = "/api/rainviewer-frames"
+  to     = "/.netlify/functions/rainviewer-frames"
   status = 200
 
+# Rainviewer tiles -> function
 [[redirects]]
-  from = "/api/rainviewer/tile/*"
-  to = "/.netlify/functions/rainviewer-tile/:splat"
+  from   = "/api/rainviewer-tile/*"
+  to     = "/.netlify/functions/rainviewer-tile/:splat"
   status = 200
-  
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
 
+# Catch-all for other functions (optional, but handy)
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/:splat"
+  status = 200
+  force  = true
