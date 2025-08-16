@@ -13,6 +13,7 @@ exports.handler = async (event) => {
   try {
     const res = await fetch("https://api.rainviewer.com/public/weather-maps.json");
     const text = await res.text();
+
     return {
       statusCode: res.status,
       headers: {
@@ -24,6 +25,10 @@ exports.handler = async (event) => {
       body: text,
     };
   } catch (err) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      headers: CORS,
+      body: JSON.stringify({ error: err.message }),
+    };
   }
 };
