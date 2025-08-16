@@ -1,13 +1,15 @@
-[functions]
-  node_bundler = "esbuild"
+# netlify.toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
 
-# SPA fallback
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/api/rainviewer/frames"
+  to = "/.netlify/functions/rainviewer-frames"
   status = 200
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/rainviewer/tile/*"
+  to = "/.netlify/functions/rainviewer-tile/:splat"
   status = 200
