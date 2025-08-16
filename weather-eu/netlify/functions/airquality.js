@@ -1,4 +1,3 @@
-// netlify/functions/airquality.js
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -7,12 +6,12 @@ const CORS = {
 
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: CORS, body: "" };
+    return { statusCode: 204, headers: CORS };
   }
 
   try {
     const {
-      coordinates,           // "lat,lon"
+      coordinates,
       radius = "25000",
       order_by = "distance",
       limit = "5",
@@ -22,7 +21,7 @@ exports.handler = async (event) => {
       return {
         statusCode: 400,
         headers: CORS,
-        body: JSON.stringify({ error: "Missing required 'coordinates' param (format: lat,lon)" }),
+        body: JSON.stringify({ error: "Missing required 'coordinates' param" }),
       };
     }
 
@@ -32,36 +31,24 @@ exports.handler = async (event) => {
     url.searchParams.set("order_by", order_by);
     url.searchParams.set("limit", limit);
 
-    const headers = { "User-Agent": "netlify-function-airquality" };
-    if (process.env.OPENAQ_KEY) headers["x-api-key"] = process.env.OPENAQ_KEY;
+    const res = await fetch(url.toString(), {
+      headers: {
+        "x-api-key": process.env.OPENAQ_KEY || undefined,
+      },
+    });
 
-    const upstream = await fetch(url.toString(), { method: "GET", headers });
-
-    const contentType = upstream.headers.get("content-type") || "application/json; charset=utf-8";
-    const bodyText = await upstream.text();
-
-    if (!upstream.ok) {
-      return {
-        statusCode: upstream.status,
-        headers: { ...CORS, "Content-Type": contentType },
-        body: bodyText || JSON.stringify({ error: "Upstream error from OpenAQ" }),
-      };
-    }
-
+    const body = await res.text();
     return {
-      statusCode: 200,
+      statusCode: res.status,
       headers: {
         ...CORS,
-        "Content-Type": contentType,
-        "Cache-Control": "public, max-age=300",
+        "Content-Type":
+          res.headers.get("content-type") || "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=60",
       },
-      body: bodyText,
+      body,
     };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: CORS,
-      body: JSON.stringify({ error: "OpenAQ proxy failed", details: String(err) }),
-    };
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
   }
 };
