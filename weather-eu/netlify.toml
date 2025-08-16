@@ -13,3 +13,10 @@
   from = "/api/rainviewer/tile/*"
   to = "/.netlify/functions/rainviewer-tile/:splat"
   status = 200
+  
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
