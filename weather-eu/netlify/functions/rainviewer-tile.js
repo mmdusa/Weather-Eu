@@ -11,33 +11,33 @@ exports.handler = async (event) => {
   }
 
   try {
-    const {
-      ts,   // timestamp
-      z,
-      x,
-      y,
-      color = "3",
-      smooth = "1",
-      snow = "1",
-    } = event.queryStringParameters || {};
+    const qs = event.queryStringParameters || {};
+    const time = qs.time; // required
+    const z = qs.z;
+    const x = qs.x;
+    const y = qs.y;
 
-    if (!ts || !z || !x || !y) {
+    if (!time || !z || !x || !y) {
       return {
         statusCode: 400,
         headers: CORS,
-        body: JSON.stringify({ error: "Missing required ts, z, x, or y query params" }),
+        body: JSON.stringify({ error: "Missing required params: time, z, x, y" }),
       };
     }
 
-    const upstream = `https://tilecache.rainviewer.com/v2/radar/${ts}/256/${z}/${x}/${y}/2/1_1.png?color=${color}&smooth=${smooth}&snow=${snow}`;
-    const res = await fetch(upstream);
+    const color = qs.color ?? "3";
+    const smooth = qs.smooth ?? "1";
+    const snow = qs.snow ?? "1";
 
+    // 256 tiles; '2' = radar; '1_1' = PNG format
+    const upstream = `https://tilecache.rainviewer.com/v2/radar/${time}/256/${z}/${x}/${y}/2/1_1.png?color=${color}&smooth=${smooth}&snow=${snow}`;
+
+    const res = await fetch(upstream);
     if (!res.ok) {
-      const txt = await res.text();
       return {
         statusCode: res.status,
         headers: { ...CORS, "Content-Type": "text/plain" },
-        body: txt || `Upstream error (${res.status})`,
+        body: `Upstream error ${res.status}`,
       };
     }
 
@@ -45,15 +45,19 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
+      isBase64Encoded: true,
       headers: {
         ...CORS,
         "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=120",
+        "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
       },
       body: buf.toString("base64"),
-      isBase64Encoded: true,
     };
   } catch (err) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
+    return {
+      statusCode: 500,
+      headers: CORS,
+      body: JSON.stringify({ error: err.message }),
+    };
   }
 };
