@@ -5,59 +5,34 @@ const CORS = {
   "Access-Control-Allow-Methods": "GET, OPTIONS",
 };
 
-exports.handler = async (event) => {
+exports.handler = async (event, _context) => {
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers: CORS };
   }
 
   try {
-    const qs = event.queryStringParameters || {};
-    const time = qs.time; // required
-    const z = qs.z;
-    const x = qs.x;
-    const y = qs.y;
-
-    if (!time || !z || !x || !y) {
-      return {
-        statusCode: 400,
-        headers: CORS,
-        body: JSON.stringify({ error: "Missing required params: time, z, x, y" }),
-      };
-    }
-
-    const color = qs.color ?? "3";
-    const smooth = qs.smooth ?? "1";
-    const snow = qs.snow ?? "1";
-
-    // 256 tiles; '2' = radar; '1_1' = PNG format
-    const upstream = `https://tilecache.rainviewer.com/v2/radar/${time}/256/${z}/${x}/${y}/2/1_1.png?color=${color}&smooth=${smooth}&snow=${snow}`;
+    // everything after the function name is the RainViewer path
+    // e.g. /api/rainviewer/tile/1755377400/256/6/33/23/2/1_1.png?color=3&smooth=1&snow=1
+    const path = event.path.replace(/^.*\/rainviewer-tile\//, "");
+    const qs = event.rawQueryString ? `?${event.rawQueryString}` : "";
+    const upstream = `https://tilecache.rainviewer.com/v2/radar/${path}${qs}`;
 
     const res = await fetch(upstream);
-    if (!res.ok) {
-      return {
-        statusCode: res.status,
-        headers: { ...CORS, "Content-Type": "text/plain" },
-        body: `Upstream error ${res.status}`,
-      };
-    }
-
-    const buf = Buffer.from(await res.arrayBuffer());
+    const arrayBuf = await res.arrayBuffer();
 
     return {
-      statusCode: 200,
-      isBase64Encoded: true,
+      statusCode: res.status,
       headers: {
         ...CORS,
-        "Content-Type": "image/png",
-        "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
+        // pass back correct content type
+        "Content-Type": res.headers.get("content-type") || "image/png",
+        // cache a little to reduce function hits
+        "Cache-Control": "public, max-age=60",
       },
-      body: buf.toString("base64"),
+      isBase64Encoded: true,
+      body: Buffer.from(arrayBuf).toString("base64"),
     };
   } catch (err) {
-    return {
-      statusCode: 500,
-      headers: CORS,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
   }
 };
